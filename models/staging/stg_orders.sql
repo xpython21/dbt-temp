@@ -1,6 +1,7 @@
 select
     -- from raw_orders
-    o.orderid
+    {{ dbt_utils.generate_surrogate_key(['o.orderid', 'c.customerid', 'p.productid']) }} as sk_orders
+    , o.orderid
     , o.orderdate
     , o.shipdate
     , o.shipmode
@@ -18,9 +19,14 @@ select
     , p.productname
     , p.subcategory
     , {{ markup('ordersellingprice', 'ordercostprice') }} as markup
-from {{ ref('raw_orders') }} as o
-left join {{ ref('raw_customer') }} as c
+    -- from delivery_team
+    , d.delivery_team
+from {{ ref('raw_orders') }} o
+left join {{ ref('raw_customer') }} c
 on o.customerid = c.customerid
-left join {{ ref('raw_product') }} as p
+left join {{ ref('raw_product') }} p
 on o.productid = p.productid
+left join {{ ref('delivery_team') }} d
+on o.shipmode = d.shipmode
+
 -- {{limit_data_in_dev('orderdate')}}   --> not working because, 1. date format, 2. not recent data
